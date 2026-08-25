@@ -112,6 +112,7 @@ export default function SignupPage() {
   // dados pessoais
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [cpf, setCpf] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -119,9 +120,21 @@ export default function SignupPage() {
   const [planId, setPlanId] = useState("professional");
   const selectedPlan = PLANS.find(p => p.id === planId)!;
 
+  const formatCpf = (v: string) => {
+    const digits = v.replace(/\D/g, "").slice(0, 11);
+    return digits
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  };
+
   const validateStep1 = () => {
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name || !email || !cpf || !password || !confirmPassword) {
       setError("Preencha todos os campos.");
+      return false;
+    }
+    if (cpf.replace(/\D/g, "").length !== 11) {
+      setError("CPF inválido.");
       return false;
     }
     if (password.length < 6) {
@@ -148,23 +161,41 @@ export default function SignupPage() {
 
   const handleSubmit = async () => {
     setError("");
+
+    if (planId === "enterprise") {
+      setError("Para o plano Empresas, fale com nosso time de vendas em vendas@construia.com.br.");
+      return;
+    }
+
     setLoading(true);
 
-    const res = await fetch("/api/auth/signup", {
+    const signupRes = await fetch("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password, full_name: name, plan: planId }),
     });
-    const result = await res.json();
+    const signupResult = await signupRes.json();
 
-    if (!res.ok) {
-      console.log("ERRO COMPLETO:", JSON.stringify(result, null, 2));
-      setError(JSON.stringify(result));
+    if (!signupRes.ok) {
+      setError(signupResult.error ?? "Não foi possível criar sua conta.");
       setLoading(false);
       return;
     }
 
-    router.push("/login");
+    const checkoutRes = await fetch("/api/stripe/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: planId, email, full_name: name, cpf }),
+    });
+    const checkoutResult = await checkoutRes.json();
+
+    if (!checkoutRes.ok || !checkoutResult.url) {
+      setError(checkoutResult.error ?? "Não foi possível iniciar o pagamento.");
+      setLoading(false);
+      return;
+    }
+
+    window.location.href = checkoutResult.url;
   };
 
   return (
@@ -200,6 +231,7 @@ export default function SignupPage() {
 
               <Field label="Nome completo" value={name} onChange={setName} placeholder="Seu nome" />
               <Field label="E-mail" type="email" value={email} onChange={setEmail} placeholder="voce@empresa.com.br" />
+              <Field label="CPF" value={cpf} onChange={v => setCpf(formatCpf(v))} placeholder="000.000.000-00" />
               <Field label="Senha" type="password" value={password} onChange={setPassword} placeholder="••••••••" />
               <Field label="Confirmar senha" type="password" value={confirmPassword} onChange={setConfirmPassword} placeholder="••••••••" />
             </>
@@ -267,6 +299,7 @@ export default function SignupPage() {
               <div style={{ background: "#111827", border: "1px solid #1f2937", borderRadius: 14, padding: 20, marginBottom: 20 }}>
                 <SummaryRow label="Nome" value={name} />
                 <SummaryRow label="E-mail" value={email} />
+                <SummaryRow label="CPF" value={cpf} />
                 <SummaryRow
                   label="Plano"
                   value={`${selectedPlan.icon} ${selectedPlan.name}${selectedPlan.price ? ` — R$ ${selectedPlan.price.toFixed(2).replace(".", ",")}/mês` : " — sob consulta"}`}
