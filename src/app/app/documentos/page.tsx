@@ -157,6 +157,7 @@ export default function DocumentosPage() {
   const router = useRouter();
   const [checkingSession, setCheckingSession] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDoc[]>([]);
   const [dragOver, setDragOver] = useState(false);
@@ -164,12 +165,20 @@ export default function DocumentosPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) {
         router.push("/login");
         return;
       }
       setUser(data.session.user);
+
+      const { data: profile } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", data.session.user.id)
+        .single();
+
+      setIsAdmin(profile?.role === "admin");
       setCheckingSession(false);
     });
   }, [router]);
@@ -259,6 +268,7 @@ export default function DocumentosPage() {
             </div>
           ))}
 
+          {isAdmin && (
           <div style={{ marginTop: 40 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
               <span style={{ fontSize: 18 }}>🔒</span>
@@ -331,6 +341,7 @@ export default function DocumentosPage() {
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
     </div>
