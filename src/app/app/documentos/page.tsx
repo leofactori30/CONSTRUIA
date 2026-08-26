@@ -5,7 +5,16 @@ import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
-type PublicDoc = { title: string; ref: string; description: string };
+type Document = {
+  id: string;
+  name: string;
+  category: string | null;
+  tema: string | null;
+  is_public: boolean;
+  is_active: boolean;
+  tenant_id: string | null;
+  [key: string]: unknown;
+};
 type UploadedDoc = { name: string; size: number; status: "processando" | "pronto" };
 
 const NAV_ITEMS = [
@@ -14,40 +23,21 @@ const NAV_ITEMS = [
   { id: "tokens", icon: "🔢", label: "Tokens", path: "/app/tokens" },
 ];
 
-const PUBLIC_DOCS: { category: string; icon: string; color: string; docs: PublicDoc[] }[] = [
-  {
-    category: "Normas Regulamentadoras (NRs)",
-    icon: "🦺",
-    color: "#6366f1",
-    docs: [
-      { title: "NR-06", ref: "EPI", description: "Equipamento de Proteção Individual" },
-      { title: "NR-10", ref: "Elétrica", description: "Segurança em instalações e serviços com eletricidade" },
-      { title: "NR-12", ref: "Máquinas", description: "Segurança no trabalho em máquinas e equipamentos" },
-      { title: "NR-18", ref: "Construção", description: "Condições e meio ambiente de trabalho na indústria da construção" },
-      { title: "NR-35", ref: "Altura", description: "Trabalho em altura" },
-    ],
-  },
-  {
-    category: "BIM",
-    icon: "🏗️",
-    color: "#f59e0b",
-    docs: [
-      { title: "NBR 15965", ref: "ABNT", description: "Sistema de classificação da informação da construção" },
-      { title: "NBR ISO 19650-1", ref: "ABNT", description: "Gestão da informação por meio do BIM — conceitos e princípios" },
-      { title: "NBR ISO 19650-2", ref: "ABNT", description: "Gestão da informação por meio do BIM — fase de entrega dos ativos" },
-    ],
-  },
-  {
-    category: "Meio Ambiente",
-    icon: "🌱",
-    color: "#10b981",
-    docs: [
-      { title: "CONAMA 001/1986", ref: "EIA/RIMA", description: "Critérios básicos para avaliação de impacto ambiental" },
-      { title: "CONAMA 307/2002", ref: "Resíduos", description: "Gestão de resíduos da construção civil" },
-      { title: "Lei 12.305/2010", ref: "PNRS", description: "Política Nacional de Resíduos Sólidos" },
-    ],
-  },
-];
+const TEMA_COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ec4899", "#06b6d4", "#a855f7"];
+
+function groupByTema(docs: Document[]) {
+  const groups = new Map<string, Document[]>();
+  for (const doc of docs) {
+    const tema = doc.tema || "Outros";
+    if (!groups.has(tema)) groups.set(tema, []);
+    groups.get(tema)!.push(doc);
+  }
+  return Array.from(groups.entries()).map(([tema, items], i) => ({
+    tema,
+    color: TEMA_COLORS[i % TEMA_COLORS.length],
+    docs: items,
+  }));
+}
 
 // ─── LOGO ─────────────────────────────────────────────────────
 function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
@@ -163,6 +153,11 @@ export default function DocumentosPage() {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [loadingDocs, setLoadingDocs] = useState(true);
+  const [docsError, setDocsError] = useState<string | null>(null);
+  const [publicDocs, setPublicDocs] = useState<Document[]>([]);
+  const [internalDocs, setInternalDocs] = useState<Document[]>([]);
+
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getSession().then(async ({ data }) => {
@@ -180,6 +175,23 @@ export default function DocumentosPage() {
 
       setIsAdmin(profile?.role === "admin");
       setCheckingSession(false);
+
+      try {
+        const res = await fetch("/api/documents", {
+          headers: { Authorization: `Bearer ${data.session.access_token}` },
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          setDocsError(json.error || "Erro ao carregar documentos.");
+        } else {
+          setPublicDocs(json.public_docs || []);
+          setInternalDocs(json.internal_docs || []);
+        }
+      } catch {
+        setDocsError("Erro ao carregar documentos.");
+      } finally {
+        setLoadingDocs(false);
+      }
     });
   }, [router]);
 
@@ -232,16 +244,24 @@ export default function DocumentosPage() {
             Normas técnicas públicas disponíveis para consulta e documentos internos da sua empresa.
           </p>
 
-          {PUBLIC_DOCS.map(section => (
-            <div key={section.category} style={{ marginBottom: 32 }}>
+          {loadingDocs && (
+            <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando documentos...</p>
+          )}
+
+          {docsError && !loadingDocs && (
+            <p style={{ color: "#f87171", fontSize: 13 }}>{docsError}</p>
+          )}
+
+          {!loadingDocs && !docsError && groupByTema(publicDocs).map(section => (
+            <div key={section.tema} style={{ marginBottom: 32 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                <span style={{ fontSize: 18 }}>{section.icon}</span>
-                <h2 style={{ color: "#ffffff", fontSize: 16, fontWeight: 700, margin: 0 }}>{section.category}</h2>
+                <span style={{ fontSize: 18 }}>📚</span>
+                <h2 style={{ color: "#ffffff", fontSize: 16, fontWeight: 700, margin: 0 }}>{section.tema}</h2>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
                 {section.docs.map(doc => (
                   <div
-                    key={doc.title}
+                    key={doc.id}
                     style={{
                       background: "rgba(255,255,255,0.03)",
                       border: "1px solid #1e293b",
@@ -250,15 +270,16 @@ export default function DocumentosPage() {
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                      <span style={{ color: "#ffffff", fontWeight: 700, fontSize: 14 }}>{doc.title}</span>
-                      <span style={{
-                        fontSize: 10, fontWeight: 700, color: section.color,
-                        background: `${section.color}20`, borderRadius: 999, padding: "2px 8px",
-                      }}>
-                        {doc.ref}
-                      </span>
+                      <span style={{ color: "#ffffff", fontWeight: 700, fontSize: 14 }}>{doc.name}</span>
+                      {doc.category && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, color: section.color,
+                          background: `${section.color}20`, borderRadius: 999, padding: "2px 8px",
+                        }}>
+                          {doc.category}
+                        </span>
+                      )}
                     </div>
-                    <p style={{ color: "#9ca3af", fontSize: 12.5, lineHeight: 1.5, margin: "0 0 12px" }}>{doc.description}</p>
                     <span style={{ color: "#6b7280", fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}>
                       🔓 Público
                     </span>
@@ -268,11 +289,57 @@ export default function DocumentosPage() {
             </div>
           ))}
 
+          {!loadingDocs && !docsError && publicDocs.length === 0 && (
+            <p style={{ color: "#6b7280", fontSize: 13, marginBottom: 32 }}>Nenhum documento público disponível.</p>
+          )}
+
+          {!loadingDocs && !docsError && internalDocs.length > 0 && (
+            <div style={{ marginBottom: 32 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                <span style={{ fontSize: 18 }}>🔒</span>
+                <h2 style={{ color: "#ffffff", fontSize: 16, fontWeight: 700, margin: 0 }}>Documentos internos</h2>
+              </div>
+              {groupByTema(internalDocs).map(section => (
+                <div key={section.tema} style={{ marginBottom: 20 }}>
+                  <h3 style={{ color: "#9ca3af", fontSize: 13, fontWeight: 600, margin: "0 0 10px" }}>{section.tema}</h3>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+                    {section.docs.map(doc => (
+                      <div
+                        key={doc.id}
+                        style={{
+                          background: "rgba(255,255,255,0.03)",
+                          border: "1px solid #1e293b",
+                          borderRadius: 14,
+                          padding: 16,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: 14 }}>{doc.name}</span>
+                          {doc.category && (
+                            <span style={{
+                              fontSize: 10, fontWeight: 700, color: section.color,
+                              background: `${section.color}20`, borderRadius: 999, padding: "2px 8px",
+                            }}>
+                              {doc.category}
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ color: "#6b7280", fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}>
+                          🔒 Interno
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {isAdmin && (
           <div style={{ marginTop: 40 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-              <span style={{ fontSize: 18 }}>🔒</span>
-              <h2 style={{ color: "#ffffff", fontSize: 16, fontWeight: 700, margin: 0 }}>Documentos internos</h2>
+              <span style={{ fontSize: 18 }}>📤</span>
+              <h2 style={{ color: "#ffffff", fontSize: 16, fontWeight: 700, margin: 0 }}>Enviar documento interno</h2>
             </div>
 
             <div
