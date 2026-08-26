@@ -7,10 +7,62 @@ import { createClient } from "@/lib/supabase/client";
 
 type Message = { role: "user" | "assistant"; content: string };
 
+type Theme = {
+  id: string;
+  icon: string;
+  label: string;
+  description: string;
+  greeting: string;
+  questions: string[];
+};
+
 const NAV_ITEMS = [
   { id: "chat", icon: "💬", label: "Chat", path: "/app/chat" },
   { id: "documentos", icon: "📁", label: "Documentos", path: "/app/documentos" },
   { id: "tokens", icon: "🔢", label: "Tokens", path: "/app/tokens" },
+];
+
+const THEMES: Theme[] = [
+  {
+    id: "seguranca",
+    icon: "🦺",
+    label: "Segurança",
+    description: "NRs, EPIs, acidentes de trabalho",
+    greeting: "Olá! Sou a IA da Constru.IA focada em Segurança do Trabalho. Pergunte sobre NRs, EPIs, PCMSO ou acidentes de trabalho.",
+    questions: ["O que exige a NR-18?", "Quando é obrigatório PCMSO?"],
+  },
+  {
+    id: "meio_ambiente",
+    icon: "🌿",
+    label: "Meio Ambiente",
+    description: "CONAMA, licenciamento, resíduos",
+    greeting: "Olá! Sou a IA da Constru.IA focada em Meio Ambiente. Pergunte sobre resoluções CONAMA, licenciamento ou gestão de resíduos.",
+    questions: ["O que diz a CONAMA 307?", "Como licenciar uma obra?"],
+  },
+  {
+    id: "projetos",
+    icon: "📐",
+    label: "Projetos de Engenharia",
+    description: "licitações, SINAPI, urbanismo",
+    greeting: "Olá! Sou a IA da Constru.IA focada em Projetos de Engenharia. Pergunte sobre licitações, SINAPI ou legislação de urbanismo.",
+    questions: ["Como usar o SINAPI?", "O que exige a Lei 14.133?"],
+  },
+  {
+    id: "bim",
+    icon: "💻",
+    label: "BIM / Tecnologia",
+    description: "modelagem, IFC, decretos BIM",
+    greeting: "Olá! Sou a IA da Constru.IA focada em BIM. Pergunte sobre modelagem, formato IFC ou decretos BIM.",
+    questions: ["O que é o Decreto BIM BR?", "Como montar um BEP?"],
+  },
+  {
+    id: "geral",
+    icon: "🔍",
+    label: "Consulta Geral",
+    description: "todos os documentos",
+    greeting: "Olá! Sou a IA da Constru.IA. Pergunte sobre NRs, ABNTs, CONAMA, BIM ou normas internas da sua empresa.",
+    questions: ["O que exige a NR-18?", "O que diz a CONAMA 307?", "Como usar o SINAPI?", "O que é o Decreto BIM BR?"],
+  },
 ];
 
 // ─── LOGO ─────────────────────────────────────────────────────
@@ -120,11 +172,10 @@ export default function ChatPage() {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
-  const [sessionId] = useState(() => crypto.randomUUID());
+  const [sessionId, setSessionId] = useState(() => crypto.randomUUID());
 
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Olá! Sou a IA da Constru.IA. Pergunte sobre NRs, ABNTs ou normas internas da sua empresa." },
-  ]);
+  const [theme, setTheme] = useState<Theme | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -165,9 +216,24 @@ export default function ChatPage() {
     router.push("/login");
   };
 
-  const handleSend = async () => {
-    const text = input.trim();
-    if (!text || sending) return;
+  const handleSelectTheme = (selected: Theme) => {
+    setTheme(selected);
+    setMessages([{ role: "assistant", content: selected.greeting }]);
+    setInput("");
+    setError("");
+    setSessionId(crypto.randomUUID());
+  };
+
+  const handleChangeTheme = () => {
+    setTheme(null);
+    setMessages([]);
+    setInput("");
+    setError("");
+  };
+
+  const handleSend = async (textOverride?: string) => {
+    const text = (textOverride ?? input).trim();
+    if (!text || sending || !theme) return;
 
     setError("");
     const nextMessages: Message[] = [...messages, { role: "user", content: text }];
@@ -182,7 +248,7 @@ export default function ChatPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ messages: nextMessages, session_id: sessionId }),
+        body: JSON.stringify({ messages: nextMessages, session_id: sessionId, tema: theme.id }),
       });
       const result = await res.json();
 
@@ -218,11 +284,81 @@ export default function ChatPage() {
     );
   }
 
+  if (!theme) {
+    return (
+      <div style={{ display: "flex", height: "100vh", fontFamily: "'Inter', sans-serif", background: "#0f172a" }}>
+        <Sidebar user={user} isAdmin={isAdmin} onLogout={handleLogout} />
+
+        <div style={{ flex: 1, overflowY: "auto", background: "linear-gradient(180deg,#0f172a 0%,#1e1b4b 100%)" }}>
+          <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 24px" }}>
+            <h1 style={{ color: "#ffffff", fontSize: 24, fontWeight: 700, margin: "0 0 4px", textAlign: "center" }}>
+              Sobre o que você quer conversar?
+            </h1>
+            <p style={{ color: "#6b7280", fontSize: 14, margin: "0 0 32px", textAlign: "center" }}>
+              Escolha um tema para focar a conversa nas normas relacionadas.
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
+              {THEMES.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => handleSelectTheme(t)}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    gap: 8,
+                    textAlign: "left",
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid #1e293b",
+                    borderRadius: 16,
+                    padding: 20,
+                    cursor: "pointer",
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                >
+                  <span style={{ fontSize: 28 }}>{t.icon}</span>
+                  <span style={{ color: "#ffffff", fontWeight: 700, fontSize: 15 }}>{t.label}</span>
+                  <span style={{ color: "#9ca3af", fontSize: 12.5, lineHeight: 1.5 }}>{t.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "'Inter', sans-serif", background: "#0f172a" }}>
       <Sidebar user={user} isAdmin={isAdmin} onLogout={handleLogout} />
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100vh", background: "linear-gradient(180deg,#0f172a 0%,#1e1b4b 100%)" }}>
+        {/* Header do tema */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "16px 24px", borderBottom: "1px solid #1e293b", background: "#0f172a",
+        }}>
+          <span style={{ color: "#e5e7eb", fontSize: 14, fontWeight: 600 }}>
+            {theme.icon} {theme.label}
+          </span>
+          <button
+            onClick={handleChangeTheme}
+            style={{
+              padding: "8px 14px",
+              borderRadius: 10,
+              border: "1px solid #374151",
+              background: "transparent",
+              color: "#9ca3af",
+              fontSize: 12.5,
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            Trocar tema
+          </button>
+        </div>
+
         {/* Mensagens */}
         <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px" }}>
           <div style={{ maxWidth: 760, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
@@ -280,6 +416,29 @@ export default function ChatPage() {
               </div>
             )}
 
+            {messages.length === 1 && theme.questions.length > 0 && !sending && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+                {theme.questions.map(q => (
+                  <button
+                    key={q}
+                    onClick={() => handleSend(q)}
+                    style={{
+                      padding: "8px 14px",
+                      borderRadius: 999,
+                      border: "1px solid #374151",
+                      background: "rgba(255,255,255,0.03)",
+                      color: "#c7d2fe",
+                      fontSize: 12.5,
+                      cursor: "pointer",
+                      fontFamily: "'Inter', sans-serif",
+                    }}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div ref={bottomRef} />
           </div>
         </div>
@@ -320,7 +479,7 @@ export default function ChatPage() {
                 }}
               />
               <button
-                onClick={handleSend}
+                onClick={() => handleSend()}
                 disabled={sending || !input.trim()}
                 style={{
                   padding: "12px 20px",

@@ -6,6 +6,14 @@ const BASE_SYSTEM_PROMPT = `Você é um assistente técnico especializado em eng
 
 Sempre cite a fonte da informação (norma, número e, quando possível, o item ou artigo de referência). Se a pergunta não puder ser respondida com base nessas normas, diga isso claramente em vez de inventar uma resposta.`;
 
+const THEME_INSTRUCTIONS: Record<string, string> = {
+  seguranca: "Foque exclusivamente em Normas Regulamentadoras (NRs) e legislação trabalhista de segurança e saúde ocupacional (EPIs, PCMSO, acidentes de trabalho, trabalho em altura, etc.). Não aborde temas de meio ambiente, BIM ou licitações a menos que a pergunta exija diretamente.",
+  meio_ambiente: "Foque exclusivamente em resoluções CONAMA, licenciamento ambiental e legislação de resíduos e meio ambiente. Não aborde temas de segurança do trabalho, BIM ou licitações a menos que a pergunta exija diretamente.",
+  projetos: "Foque exclusivamente em licitações e contratos públicos (Lei 14.133/2021), SINAPI e legislação de urbanismo. Não aborde temas de segurança do trabalho, meio ambiente ou BIM a menos que a pergunta exija diretamente.",
+  bim: "Foque exclusivamente em modelagem BIM, formato IFC, decretos e guias de implementação BIM (Decreto BIM BR, BEP). Não aborde temas de segurança do trabalho, meio ambiente ou licitações a menos que a pergunta exija diretamente.",
+  geral: "Responda com base em todos os documentos disponíveis, sem restrição de tema.",
+};
+
 type DocumentSummary = { name: string; category: string | null; tema: string | null };
 
 function formatDocuments(docs: DocumentSummary[]) {
@@ -28,11 +36,13 @@ export async function POST(request: Request) {
     return Response.json({ error: "Sessão inválida ou expirada." }, { status: 401 });
   }
 
-  const { messages } = await request.json();
+  const { messages, tema } = await request.json();
 
   if (!Array.isArray(messages) || messages.length === 0) {
     return Response.json({ error: "Mensagens inválidas." }, { status: 400 });
   }
+
+  const themeInstruction = THEME_INSTRUCTIONS[tema as string] ?? THEME_INSTRUCTIONS.geral;
 
   const { data: publicDocs } = await supabaseAdmin
     .from("documents")
@@ -62,7 +72,7 @@ export async function POST(request: Request) {
     documentsSection += `\n\nDocumentos internos desta empresa disponíveis na base de conhecimento:\n${formatDocuments(tenantDocs)}`;
   }
 
-  const systemPrompt = `${BASE_SYSTEM_PROMPT}${documentsSection}`;
+  const systemPrompt = `${BASE_SYSTEM_PROMPT}\n\n${themeInstruction}${documentsSection}`;
 
   try {
     const response = await anthropic.messages.create({
