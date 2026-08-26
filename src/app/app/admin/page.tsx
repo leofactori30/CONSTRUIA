@@ -184,13 +184,12 @@ export default function AdminPage() {
       setUser(data.session.user);
       setAccessToken(data.session.access_token);
 
-      const { data: profile } = await supabase
-        .from("users")
-        .select("role, tenant_id")
-        .eq("id", data.session.user.id)
-        .single();
+      const res = await fetch("/api/auth/me", {
+        headers: { Authorization: `Bearer ${data.session.access_token}` },
+      });
+      const profile = await res.json();
 
-      if (!profile || profile.role !== "admin") {
+      if (!res.ok || profile?.role !== "admin") {
         router.push("/app/chat");
         return;
       }
