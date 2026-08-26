@@ -25,9 +25,12 @@ function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
 }
 
 // ─── SIDEBAR ──────────────────────────────────────────────────
-function Sidebar({ user, onLogout }: { user: User | null; onLogout: () => void }) {
+function Sidebar({ user, isAdmin, onLogout }: { user: User | null; isAdmin: boolean; onLogout: () => void }) {
   const router = useRouter();
   const name = user?.user_metadata?.full_name || user?.email || "Usuário";
+  const navItems = isAdmin
+    ? [...NAV_ITEMS, { id: "admin", icon: "🛠️", label: "Admin", path: "/app/admin" }]
+    : NAV_ITEMS;
 
   return (
     <div style={{
@@ -45,7 +48,7 @@ function Sidebar({ user, onLogout }: { user: User | null; onLogout: () => void }
       </div>
 
       <nav style={{ flex: 1, padding: "16px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
-        {NAV_ITEMS.map(item => {
+        {navItems.map(item => {
           const active = item.id === "chat";
           return (
             <button
@@ -116,6 +119,7 @@ export default function ChatPage() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [sessionId] = useState(() => crypto.randomUUID());
 
   const [messages, setMessages] = useState<Message[]>([
@@ -129,13 +133,21 @@ export default function ChatPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) {
         router.push("/login");
         return;
       }
       setUser(data.session.user);
       setAccessToken(data.session.access_token);
+
+      const { data: profile } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", data.session.user.id)
+        .single();
+
+      setIsAdmin(profile?.role === "admin");
       setCheckingSession(false);
     });
   }, [router]);
@@ -205,7 +217,7 @@ export default function ChatPage() {
 
   return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "'Inter', sans-serif", background: "#0f172a" }}>
-      <Sidebar user={user} onLogout={handleLogout} />
+      <Sidebar user={user} isAdmin={isAdmin} onLogout={handleLogout} />
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100vh", background: "linear-gradient(180deg,#0f172a 0%,#1e1b4b 100%)" }}>
         {/* Mensagens */}
