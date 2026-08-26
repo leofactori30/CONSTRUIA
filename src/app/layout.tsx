@@ -15,11 +15,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Constru.IA — Consulta de Normas Técnicas com IA",
   description: "Consulte NRs, CONAMA, leis federais e guias BIM com inteligência artificial. Base com 64+ documentos técnicos para engenheiros e arquitetos.",
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-    apple: "/favicon.svg",
-  },
 };
 
 export const viewport: Viewport = {
