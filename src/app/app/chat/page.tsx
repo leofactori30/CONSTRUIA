@@ -141,13 +141,16 @@ export default function ChatPage() {
       setUser(data.session.user);
       setAccessToken(data.session.access_token);
 
-      const { data: profile } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", data.session.user.id)
-        .single();
+      const res = await fetch("/api/auth/me", {
+        headers: { Authorization: `Bearer ${data.session.access_token}` },
+      });
+      const profile = await res.json();
 
-      setIsAdmin(profile?.role === "admin");
+      console.log("chat: /api/auth/me — user id:", data.session.user.id);
+      console.log("chat: /api/auth/me — result:", profile);
+      console.log("chat: /api/auth/me — status:", res.status, res.ok ? "" : profile?.error);
+
+      setIsAdmin(res.ok && profile?.role === "admin");
       setCheckingSession(false);
     });
   }, [router]);
