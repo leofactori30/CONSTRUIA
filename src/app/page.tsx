@@ -242,7 +242,7 @@ export default function Home() {
           </Reveal>
           <Reveal delay={320}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 32, marginTop: 80, maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
-              {[["13+", "NRs indexadas"], ["3s", "Tempo médio de resposta"], ["100%", "Fontes oficiais"]].map(([v, l]) => (
+              {[["64+", "Documentos indexados"], ["3s", "Tempo médio de resposta"], ["100%", "Fontes oficiais"]].map(([v, l]) => (
                 <div key={l}>
                   <div style={{ fontSize: 32, fontWeight: 800, color: "var(--primary-dark)" }}>{v}</div>
                   <div style={{ color: "var(--text-3)", fontSize: 12.5, marginTop: 4 }}>{l}</div>
