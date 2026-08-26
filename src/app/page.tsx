@@ -2,27 +2,28 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Reveal } from "@/components/ui/Reveal";
 
 // ─── PLANOS ───────────────────────────────────────────────────
 const PLANS = [
   {
     id: "student", icon: "🎓", name: "Estudante",
     price: 26.91, orig: 29.90, discount: "10% OFF",
-    tokens: "80.000 tokens/mês", color: "#6366f1", highlight: false,
+    tokens: "80.000 tokens/mês", color: "var(--primary)", highlight: false,
     features: ["Acesso às NRs e base pública", "Chat com IA ilimitado", "Suporte por e-mail", "Comprovante estudantil obrigatório"],
     cta: "Assinar como Estudante",
   },
   {
     id: "professional", icon: "👤", name: "Profissional",
     price: 29.90, orig: null, discount: null,
-    tokens: "150.000 tokens/mês", color: "#f59e0b", highlight: true,
+    tokens: "150.000 tokens/mês", color: "var(--warning)", highlight: true,
     features: ["Acesso às NRs e base pública", "Chat com IA ilimitado", "1 documento interno incluído", "Suporte prioritário"],
     cta: "Assinar Agora",
   },
   {
     id: "enterprise", icon: "🏢", name: "Empresas",
     price: null, orig: null, discount: null,
-    tokens: "500.000+ tokens/mês", color: "#10b981", highlight: false,
+    tokens: "500.000+ tokens/mês", color: "var(--success)", highlight: false,
     features: ["Tudo do Profissional", "Múltiplos usuários", "Documentos ilimitados", "Atendimento personalizado"],
     cta: "Falar com Consultor", enterprise: true,
   },
@@ -45,13 +46,19 @@ const FAQS = [
   { q: "O plano empresarial é diferente?",       a: "Sim. É customizável com múltiplos usuários e suporte dedicado. Entre em contato para uma proposta." },
 ];
 
+const STEPS = [
+  { n: "01", icon: "💳", title: "Escolha seu plano", desc: "Selecione o plano ideal — Estudante, Profissional ou Empresarial. Assine em minutos." },
+  { n: "02", icon: "🔑", title: "Acesse a plataforma", desc: "Faça login e acesse seu ambiente com a base de normas ativa imediatamente." },
+  { n: "03", icon: "💬", title: "Consulte com IA",    desc: "Pergunte em linguagem natural e receba respostas com citação da norma de referência." },
+];
+
 // ─── LOGO ─────────────────────────────────────────────────────
 function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const fs = size === "sm" ? 18 : size === "lg" ? 32 : 24;
   return (
     <div style={{ display: "flex", alignItems: "center" }}>
-      <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: fs, color: "#0d2d6b", lineHeight: 1 }}>Constru</span>
-      <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: fs, color: "#2d7dd2", lineHeight: 1 }}>.IA</span>
+      <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: fs, color: "var(--primary-dark)", lineHeight: 1 }}>Constru</span>
+      <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: fs, color: "var(--primary)", lineHeight: 1 }}>.IA</span>
     </div>
   );
 }
@@ -60,12 +67,32 @@ function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
 function FaqItem({ f }: { f: typeof FAQS[0] }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border border-gray-200 rounded-2xl overflow-hidden hover:border-indigo-200 transition-all">
-      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-6 py-5 text-left">
-        <span className="text-gray-900 font-semibold text-sm">{f.q}</span>
-        <span className="text-indigo-500 text-xl ml-4 flex-shrink-0 transition-transform" style={{ transform: open ? "rotate(45deg)" : "none" }}>+</span>
+    <div
+      className="hover-lift"
+      style={{ border: "1px solid var(--border)", borderRadius: 16, overflow: "hidden", background: "var(--surface)" }}
+    >
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "18px 24px", textAlign: "left", background: "none", border: "none", cursor: "pointer",
+        }}
+      >
+        <span style={{ color: "var(--text)", fontWeight: 600, fontSize: 14.5 }}>{f.q}</span>
+        <span
+          style={{
+            color: "var(--primary)", fontSize: 20, marginLeft: 16, flexShrink: 0,
+            transition: "transform 0.25s ease", transform: open ? "rotate(45deg)" : "none",
+          }}
+        >
+          +
+        </span>
       </button>
-      {open && <div className="px-6 pb-5 text-gray-500 text-sm leading-relaxed">{f.a}</div>}
+      {open && (
+        <div className="faq-content" style={{ padding: "0 24px 20px", color: "var(--text-2)", fontSize: 14, lineHeight: 1.6 }}>
+          {f.a}
+        </div>
+      )}
     </div>
   );
 }
@@ -84,24 +111,48 @@ export default function Home() {
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
   return (
-    <div className="min-h-screen" style={{ fontFamily: "'Inter', sans-serif", background: "#f8fafc" }}>
+    <div style={{ minHeight: "100vh", fontFamily: "'Inter', sans-serif", background: "var(--surface)" }}>
 
       {/* NAV */}
-      <nav className="fixed top-0 left-0 right-0 z-40 transition-all duration-300"
-        style={{ background: "#ffffff", borderBottom: "1px solid #e2e8f0", boxShadow: scrolled ? "0 1px 8px rgba(0,0,0,0.06)" : "none" }}>
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <nav
+        style={{
+          position: "fixed", top: 0, left: 0, right: 0, zIndex: 40,
+          background: "var(--surface)",
+          borderBottom: "1px solid var(--border)",
+          boxShadow: scrolled ? "0 4px 20px rgba(13,45,107,0.08)" : "none",
+          transition: "box-shadow 0.3s ease",
+        }}
+      >
+        <div style={{ maxWidth: 1120, margin: "0 auto", padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Logo size="md" />
-          <div className="hidden md:flex items-center gap-8">
+          <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
             {[["funcionalidades", "Funcionalidades"], ["planos", "Planos"], ["faq", "FAQ"]].map(([id, label]) => (
-              <button key={id} onClick={() => scrollTo(id)} className="text-gray-600 hover:text-gray-900 text-sm transition-colors">{label}</button>
+              <button
+                key={id}
+                onClick={() => scrollTo(id)}
+                className="link-underline"
+                style={{ color: "var(--text-2)", fontSize: 14, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+              >
+                {label}
+              </button>
             ))}
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => router.push("/login")} className="text-gray-600 hover:text-gray-900 text-sm border border-gray-300 hover:border-gray-400 px-4 py-2 rounded-lg transition-all hidden md:block">
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button
+              onClick={() => router.push("/login")}
+              className="btn-ghost"
+              style={{
+                color: "var(--text-2)", fontSize: 14, border: "1px solid var(--border)",
+                padding: "9px 18px", borderRadius: 10, background: "none", cursor: "pointer",
+              }}
+            >
               Entrar
             </button>
-            <button onClick={() => scrollTo("planos")} className="px-4 py-2 rounded-lg text-white text-sm font-semibold transition-all"
-              style={{ background: "linear-gradient(135deg,#6366f1,#4f46e5)" }}>
+            <button
+              onClick={() => scrollTo("planos")}
+              className="btn-primary"
+              style={{ padding: "10px 20px", borderRadius: 10, color: "#ffffff", fontSize: 14, fontWeight: 600, border: "none", cursor: "pointer" }}
+            >
               Assinar
             </button>
           </div>
@@ -109,175 +160,331 @@ export default function Home() {
       </nav>
 
       {/* HERO */}
-      <section className="relative overflow-hidden min-h-screen flex items-center pt-16"
-        style={{ background: "linear-gradient(135deg,#0f172a 0%,#1e1b4b 60%,#0f172a 100%)" }}>
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "linear-gradient(rgba(99,102,241,0.3) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,0.3) 1px,transparent 1px)", backgroundSize: "60px 60px" }} />
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full opacity-20" style={{ background: "#6366f1", filter: "blur(120px)" }} />
-        <div className="relative max-w-6xl mx-auto px-6 py-32 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-indigo-800 bg-indigo-950/60 text-indigo-300 text-sm mb-8">
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-            Plataforma disponível • Acesso imediato
-          </div>
-          <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight">
-            Consulte Normas Técnicas<br />
-            <span style={{ background: "linear-gradient(135deg,#6366f1,#a78bfa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              com Inteligência Artificial
-            </span>
-          </h1>
-          <p className="text-gray-300 text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-            NRs, ABNTs, manuais do governo e normas internas da sua empresa — tudo respondido em segundos.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button onClick={() => scrollTo("planos")} className="px-8 py-4 rounded-2xl text-white font-bold text-lg hover:scale-105 transition-all"
-              style={{ background: "linear-gradient(135deg,#6366f1,#4f46e5)", boxShadow: "0 8px 32px #6366f150" }}>
-              Começar agora — R$ 29,90/mês →
-            </button>
-            <button onClick={() => router.push("/login")} className="px-8 py-4 rounded-2xl text-white font-bold text-lg border border-gray-700 hover:border-gray-500 transition-all">
-              Entrar na plataforma
-            </button>
-          </div>
-          <p className="text-gray-500 text-sm mt-6">Sem fidelidade • Cancele quando quiser • Estudantes têm 10% de desconto</p>
-          <div className="grid grid-cols-3 gap-8 mt-20 max-w-lg mx-auto">
-            {[["13+", "NRs indexadas"], ["3s", "Tempo médio de resposta"], ["100%", "Fontes oficiais"]].map(([v, l]) => (
-              <div key={l}><div className="text-3xl font-black text-white">{v}</div><div className="text-gray-500 text-xs mt-1">{l}</div></div>
-            ))}
-          </div>
+      <section
+        style={{
+          position: "relative", overflow: "hidden", minHeight: "100vh",
+          display: "flex", alignItems: "center", paddingTop: 64,
+          background: "linear-gradient(180deg, #ffffff 0%, var(--primary-light) 100%)",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute", inset: 0, opacity: 0.5,
+            backgroundImage: "linear-gradient(rgba(45,125,210,0.08) 1px,transparent 1px),linear-gradient(90deg,rgba(45,125,210,0.08) 1px,transparent 1px)",
+            backgroundSize: "60px 60px",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute", top: "20%", left: "50%", transform: "translate(-50%,-50%)",
+            width: 480, height: 480, borderRadius: "50%", background: "var(--primary)", opacity: 0.12, filter: "blur(120px)",
+          }}
+        />
+        <div style={{ position: "relative", maxWidth: 1120, margin: "0 auto", padding: "128px 24px", textAlign: "center" }}>
+          <Reveal>
+            <div
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 999,
+                border: "1px solid var(--border)", background: "var(--surface)", color: "var(--primary-dark)", fontSize: 13.5, marginBottom: 32,
+                boxShadow: "0 2px 10px rgba(13,45,107,0.06)",
+              }}
+            >
+              <span className="live-dot" style={{ width: 8, height: 8, background: "var(--success)", borderRadius: "50%" }} />
+              Plataforma disponível • Acesso imediato
+            </div>
+          </Reveal>
+          <Reveal delay={80}>
+            <h1 style={{ fontSize: "clamp(2.4rem, 5.5vw, 4.4rem)", fontWeight: 800, color: "var(--text)", margin: "0 0 24px", lineHeight: 1.1 }}>
+              Consulte Normas Técnicas<br />
+              <span
+                style={{
+                  background: "linear-gradient(135deg, var(--primary-dark), var(--primary))",
+                  WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+                }}
+              >
+                com Inteligência Artificial
+              </span>
+            </h1>
+          </Reveal>
+          <Reveal delay={140}>
+            <p style={{ color: "var(--text-2)", fontSize: 19, maxWidth: 640, margin: "0 auto 40px", lineHeight: 1.6 }}>
+              NRs, ABNTs, manuais do governo e normas internas da sua empresa — tudo respondido em segundos.
+            </p>
+          </Reveal>
+          <Reveal delay={200}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center" }}>
+              <button
+                onClick={() => scrollTo("planos")}
+                className="btn-primary"
+                style={{
+                  padding: "16px 32px", borderRadius: 14, color: "#ffffff", fontWeight: 700, fontSize: 16.5,
+                  border: "none", cursor: "pointer", boxShadow: "0 10px 30px rgba(45,125,210,0.28)",
+                }}
+              >
+                Começar agora — R$ 29,90/mês →
+              </button>
+              <button
+                onClick={() => router.push("/login")}
+                className="btn-ghost"
+                style={{
+                  padding: "16px 32px", borderRadius: 14, color: "var(--text)", fontWeight: 700, fontSize: 16.5,
+                  border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer",
+                }}
+              >
+                Entrar na plataforma
+              </button>
+            </div>
+          </Reveal>
+          <Reveal delay={260}>
+            <p style={{ color: "var(--text-3)", fontSize: 13.5, marginTop: 24 }}>
+              Sem fidelidade • Cancele quando quiser • Estudantes têm 10% de desconto
+            </p>
+          </Reveal>
+          <Reveal delay={320}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 32, marginTop: 80, maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
+              {[["13+", "NRs indexadas"], ["3s", "Tempo médio de resposta"], ["100%", "Fontes oficiais"]].map(([v, l]) => (
+                <div key={l}>
+                  <div style={{ fontSize: 32, fontWeight: 800, color: "var(--primary-dark)" }}>{v}</div>
+                  <div style={{ color: "var(--text-3)", fontSize: 12.5, marginTop: 4 }}>{l}</div>
+                </div>
+              ))}
+            </div>
+          </Reveal>
         </div>
       </section>
 
       {/* COMO FUNCIONA */}
-      <section className="py-24 bg-white">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-black text-gray-900 mb-4">Como funciona</h2>
-            <p className="text-gray-500 text-lg">Em 3 passos simples você já está consultando normas com IA</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { n: "01", icon: "💳", title: "Escolha seu plano", desc: "Selecione o plano ideal — Estudante, Profissional ou Empresarial. Assine em minutos." },
-              { n: "02", icon: "🔑", title: "Acesse a plataforma", desc: "Faça login e acesse seu ambiente com a base de normas ativa imediatamente." },
-              { n: "03", icon: "💬", title: "Consulte com IA",    desc: "Pergunte em linguagem natural e receba respostas com citação da norma de referência." },
-            ].map(s => (
-              <div key={s.n} className="relative text-center">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">{s.n}</div>
-                <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100 hover:border-indigo-200 hover:shadow-lg transition-all">
-                  <div className="text-5xl mb-4">{s.icon}</div>
-                  <h3 className="text-gray-900 font-bold text-lg mb-2">{s.title}</h3>
-                  <p className="text-gray-500 text-sm leading-relaxed">{s.desc}</p>
+      <section style={{ padding: "96px 24px", background: "var(--surface)" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto" }}>
+          <Reveal>
+            <div style={{ textAlign: "center", marginBottom: 64 }}>
+              <h2 style={{ fontSize: 34, fontWeight: 800, color: "var(--text)", margin: "0 0 12px" }}>Como funciona</h2>
+              <p style={{ color: "var(--text-2)", fontSize: 17 }}>Em 3 passos simples você já está consultando normas com IA</p>
+            </div>
+          </Reveal>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 32 }}>
+            {STEPS.map((s, i) => (
+              <Reveal key={s.n} delay={i * 100}>
+                <div style={{ position: "relative", textAlign: "center" }}>
+                  <div
+                    style={{
+                      position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)",
+                      fontSize: 12, fontWeight: 800, color: "var(--primary)", background: "var(--primary-light)",
+                      padding: "4px 12px", borderRadius: 999, border: "1px solid var(--border)",
+                    }}
+                  >
+                    {s.n}
+                  </div>
+                  <div
+                    className="hover-lift"
+                    style={{ background: "var(--surface-2)", borderRadius: 20, padding: 36, border: "1px solid var(--border)" }}
+                  >
+                    <div style={{ fontSize: 44, marginBottom: 16 }}>{s.icon}</div>
+                    <h3 style={{ color: "var(--text)", fontWeight: 700, fontSize: 17, margin: "0 0 8px" }}>{s.title}</h3>
+                    <p style={{ color: "var(--text-2)", fontSize: 14, lineHeight: 1.6, margin: 0 }}>{s.desc}</p>
+                  </div>
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* FEATURES */}
-      <section id="funcionalidades" className="py-24 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-black text-gray-900 mb-4">Tudo que você precisa</h2>
-            <p className="text-gray-500 text-lg">Ferramentas pensadas para quem trabalha com construção civil e arquitetura</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {FEATURES.map(f => (
-              <div key={f.title} className="bg-white rounded-2xl p-6 border border-gray-100 hover:border-indigo-200 hover:shadow-lg transition-all">
-                <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-2xl mb-4">{f.icon}</div>
-                <h3 className="text-gray-900 font-bold mb-2">{f.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{f.desc}</p>
-              </div>
+      <section id="funcionalidades" style={{ padding: "96px 24px", background: "var(--surface-2)" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto" }}>
+          <Reveal>
+            <div style={{ textAlign: "center", marginBottom: 64 }}>
+              <h2 style={{ fontSize: 34, fontWeight: 800, color: "var(--text)", margin: "0 0 12px" }}>Tudo que você precisa</h2>
+              <p style={{ color: "var(--text-2)", fontSize: 17 }}>Ferramentas pensadas para quem trabalha com construção civil e arquitetura</p>
+            </div>
+          </Reveal>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
+            {FEATURES.map((f, i) => (
+              <Reveal key={f.title} delay={(i % 3) * 100}>
+                <div
+                  className="hover-lift"
+                  style={{ background: "var(--surface)", borderRadius: 20, padding: 28, border: "1px solid var(--border)" }}
+                >
+                  <div
+                    style={{
+                      width: 52, height: 52, borderRadius: 14, background: "var(--primary-light)",
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 18,
+                    }}
+                  >
+                    {f.icon}
+                  </div>
+                  <h3 style={{ color: "var(--text)", fontWeight: 700, fontSize: 16, margin: "0 0 8px" }}>{f.title}</h3>
+                  <p style={{ color: "var(--text-2)", fontSize: 14, lineHeight: 1.6, margin: 0 }}>{f.desc}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* PLANOS */}
-      <section id="planos" className="py-24" style={{ background: "linear-gradient(135deg,#0f172a,#1e1b4b)" }}>
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-black text-white mb-4">Planos e preços</h2>
-            <p className="text-gray-400 text-lg">Cada plano inclui uma cota mensal de tokens correlacionada com a API do Claude</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8 items-start">
-            {PLANS.map(plan => (
-              <div key={plan.id} className="relative rounded-2xl border transition-all duration-300 hover:scale-105"
-                style={{ background: plan.highlight ? `${plan.color}15` : "rgba(255,255,255,0.03)", borderColor: plan.highlight ? plan.color : "#1e293b", boxShadow: plan.highlight ? `0 8px 40px ${plan.color}30` : "none" }}>
-                {plan.highlight && <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold text-white" style={{ background: plan.color }}>⭐ Mais popular</div>}
-                {plan.discount  && <div className="absolute -top-3 right-4 px-3 py-1 rounded-full text-xs font-bold text-white bg-green-500">{plan.discount}</div>}
-                <div className="p-8">
-                  <div className="text-4xl mb-3">{plan.icon}</div>
-                  <h3 className="text-white font-black text-xl mb-1">{plan.name}</h3>
-                  {plan.price ? (
-                    <div className="mb-4">
-                      {plan.orig && <div className="text-gray-600 text-sm line-through">R$ {plan.orig.toFixed(2).replace(".", ",")}/mês</div>}
-                      <div className="flex items-end gap-1">
-                        <span className="text-4xl font-black text-white">R$ {plan.price.toFixed(2).replace(".", ",")}</span>
-                        <span className="text-gray-400 text-sm mb-1">/mês</span>
-                      </div>
+      <section id="planos" style={{ padding: "96px 24px", background: "var(--surface)" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto" }}>
+          <Reveal>
+            <div style={{ textAlign: "center", marginBottom: 64 }}>
+              <h2 style={{ fontSize: 34, fontWeight: 800, color: "var(--text)", margin: "0 0 12px" }}>Planos e preços</h2>
+              <p style={{ color: "var(--text-2)", fontSize: 17 }}>Cada plano inclui uma cota mensal de tokens correlacionada com a API do Claude</p>
+            </div>
+          </Reveal>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 28, alignItems: "start" }}>
+            {PLANS.map((plan, i) => (
+              <Reveal key={plan.id} delay={i * 100}>
+                <div
+                  className="hover-lift"
+                  style={{
+                    position: "relative", borderRadius: 24,
+                    border: plan.highlight ? `2px solid ${plan.color}` : "1px solid var(--border)",
+                    background: plan.highlight ? `linear-gradient(180deg, ${plan.color}12, var(--surface) 60%)` : "var(--surface)",
+                    boxShadow: plan.highlight ? `0 16px 40px rgba(245,158,11,0.16)` : "0 2px 12px rgba(13,45,107,0.04)",
+                  }}
+                >
+                  {plan.highlight && (
+                    <div
+                      style={{
+                        position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)",
+                        padding: "6px 16px", borderRadius: 999, fontSize: 12, fontWeight: 700, color: "#ffffff", background: plan.color,
+                        boxShadow: `0 4px 14px ${plan.color}55`,
+                      }}
+                    >
+                      ⭐ Mais popular
                     </div>
-                  ) : (
-                    <div className="mb-4 text-2xl font-black text-white">Sob consulta</div>
                   )}
-                  <div className="flex items-center gap-2 mb-6 px-3 py-2 rounded-xl border" style={{ borderColor: `${plan.color}50`, background: `${plan.color}10` }}>
-                    <span className="text-lg">🔢</span>
-                    <span className="text-sm font-medium" style={{ color: plan.color }}>{plan.tokens}</span>
+                  {plan.discount && (
+                    <div
+                      style={{
+                        position: "absolute", top: -14, right: 20,
+                        padding: "5px 12px", borderRadius: 999, fontSize: 11, fontWeight: 700, color: "#ffffff", background: "var(--success)",
+                      }}
+                    >
+                      {plan.discount}
+                    </div>
+                  )}
+                  <div style={{ padding: 32 }}>
+                    <div style={{ fontSize: 36, marginBottom: 14 }}>{plan.icon}</div>
+                    <h3 style={{ color: "var(--text)", fontWeight: 800, fontSize: 20, margin: "0 0 4px" }}>{plan.name}</h3>
+                    {plan.price ? (
+                      <div style={{ marginBottom: 20 }}>
+                        {plan.orig && (
+                          <div style={{ color: "var(--text-3)", fontSize: 13, textDecoration: "line-through" }}>
+                            R$ {plan.orig.toFixed(2).replace(".", ",")}/mês
+                          </div>
+                        )}
+                        <div style={{ display: "flex", alignItems: "flex-end", gap: 4 }}>
+                          <span style={{ fontSize: 36, fontWeight: 800, color: "var(--text)" }}>R$ {plan.price.toFixed(2).replace(".", ",")}</span>
+                          <span style={{ color: "var(--text-2)", fontSize: 13, marginBottom: 6 }}>/mês</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ marginBottom: 20, fontSize: 24, fontWeight: 800, color: "var(--text)" }}>Sob consulta</div>
+                    )}
+                    <div
+                      style={{
+                        display: "flex", alignItems: "center", gap: 8, marginBottom: 24, padding: "10px 14px",
+                        borderRadius: 12, border: `1px solid ${plan.color}40`, background: `${plan.color}0d`,
+                      }}
+                    >
+                      <span style={{ fontSize: 16 }}>🔢</span>
+                      <span style={{ fontSize: 13.5, fontWeight: 600, color: plan.color }}>{plan.tokens}</span>
+                    </div>
+                    <ul style={{ listStyle: "none", padding: 0, margin: "0 0 28px", display: "flex", flexDirection: "column", gap: 12 }}>
+                      {plan.features.map(f => (
+                        <li key={f} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13.5, color: "var(--text-2)" }}>
+                          <span style={{ color: plan.color, fontWeight: 700 }}>✓</span>{f}
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      onClick={() => plan.enterprise ? window.open("https://wa.me/5511999999999", "_blank") : router.push("/signup")}
+                      className="hover-scale"
+                      style={{
+                        width: "100%", padding: "14px 0", borderRadius: 12, fontWeight: 700, fontSize: 14.5, cursor: "pointer",
+                        color: plan.highlight || plan.enterprise ? "#ffffff" : plan.color,
+                        background: plan.highlight || plan.enterprise ? plan.color : `${plan.color}12`,
+                        border: plan.highlight || plan.enterprise ? "none" : `1px solid ${plan.color}`,
+                      }}
+                    >
+                      {plan.enterprise ? "💬 " : ""}{plan.cta}
+                    </button>
                   </div>
-                  <ul className="space-y-3 mb-8">
-                    {plan.features.map(f => (
-                      <li key={f} className="flex items-start gap-2 text-sm text-gray-400">
-                        <span style={{ color: plan.color }}>✓</span>{f}
-                      </li>
-                    ))}
-                  </ul>
-                  <button
-                    onClick={() => plan.enterprise ? window.open("https://wa.me/5511999999999", "_blank") : router.push("/signup")}
-                    className="w-full py-3 rounded-xl text-white font-bold text-sm transition-all hover:opacity-90"
-                    style={{ background: plan.highlight || plan.enterprise ? plan.color : `${plan.color}30`, border: plan.highlight || plan.enterprise ? "none" : `1px solid ${plan.color}` }}>
-                    {plan.enterprise ? "💬 " : ""}{plan.cta}
-                  </button>
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-24 bg-white">
-        <div className="max-w-3xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-black text-gray-900 mb-4">Perguntas frequentes</h2>
-          </div>
-          <div className="space-y-4">
-            {FAQS.map((f, i) => <FaqItem key={i} f={f} />)}
+      <section id="faq" style={{ padding: "96px 24px", background: "var(--surface-2)" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto" }}>
+          <Reveal>
+            <div style={{ textAlign: "center", marginBottom: 48 }}>
+              <h2 style={{ fontSize: 34, fontWeight: 800, color: "var(--text)", margin: 0 }}>Perguntas frequentes</h2>
+            </div>
+          </Reveal>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {FAQS.map((f, i) => (
+              <Reveal key={f.q} delay={i * 60}>
+                <FaqItem f={f} />
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>
 
       {/* CTA FINAL */}
-      <section className="py-24" style={{ background: "linear-gradient(135deg,#1e1b4b,#0f172a)" }}>
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-4xl font-black text-white mb-4">Pronto para consultar normas com IA?</h2>
-          <p className="text-gray-400 text-lg mb-10">Junte-se a engenheiros e arquitetos que já economizam horas de pesquisa toda semana.</p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button onClick={() => scrollTo("planos")} className="px-8 py-4 rounded-2xl text-white font-bold text-lg hover:scale-105 transition-all"
-              style={{ background: "linear-gradient(135deg,#6366f1,#4f46e5)", boxShadow: "0 8px 32px #6366f150" }}>
-              Assinar agora →
-            </button>
-            <button onClick={() => router.push("/login")} className="px-8 py-4 rounded-2xl text-white font-bold text-lg border border-gray-700 hover:border-gray-500 transition-all">
-              Entrar na plataforma
-            </button>
+      <section style={{ padding: "96px 24px", background: "linear-gradient(135deg, var(--primary-dark), var(--primary))" }}>
+        <Reveal>
+          <div style={{ maxWidth: 720, margin: "0 auto", textAlign: "center" }}>
+            <h2 style={{ fontSize: 34, fontWeight: 800, color: "#ffffff", margin: "0 0 12px" }}>Pronto para consultar normas com IA?</h2>
+            <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 17, marginBottom: 40 }}>
+              Junte-se a engenheiros e arquitetos que já economizam horas de pesquisa toda semana.
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center" }}>
+              <button
+                onClick={() => scrollTo("planos")}
+                className="hover-scale"
+                style={{
+                  padding: "16px 32px", borderRadius: 14, color: "var(--primary-dark)", fontWeight: 700, fontSize: 16.5,
+                  border: "none", cursor: "pointer", background: "#ffffff", boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+                }}
+              >
+                Assinar agora →
+              </button>
+              <button
+                onClick={() => router.push("/login")}
+                className="hover-scale"
+                style={{
+                  padding: "16px 32px", borderRadius: 14, color: "#ffffff", fontWeight: 700, fontSize: 16.5,
+                  border: "1px solid rgba(255,255,255,0.4)", background: "transparent", cursor: "pointer",
+                }}
+              >
+                Entrar na plataforma
+              </button>
+            </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* FOOTER */}
-      <footer className="py-10 border-t border-gray-200" style={{ background: "#ffffff" }}>
-        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <footer style={{ padding: "40px 24px", borderTop: "1px solid var(--border)", background: "var(--surface)" }}>
+        <div style={{ maxWidth: 1120, margin: "0 auto", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
           <Logo size="sm" />
-          <p className="text-gray-500 text-xs">© 2026 Constru.IA — Todos os direitos reservados</p>
-          <div className="flex gap-6">
+          <p style={{ color: "var(--text-3)", fontSize: 12.5, margin: 0 }}>© 2026 Constru.IA — Todos os direitos reservados</p>
+          <div style={{ display: "flex", gap: 24 }}>
             {["Termos de Uso", "Privacidade", "Contato"].map(l => (
-              <button key={l} className="text-gray-400 hover:text-gray-600 text-xs transition-colors">{l}</button>
+              <button
+                key={l}
+                className="link-underline"
+                style={{ color: "var(--text-3)", fontSize: 12.5, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+              >
+                {l}
+              </button>
             ))}
           </div>
         </div>

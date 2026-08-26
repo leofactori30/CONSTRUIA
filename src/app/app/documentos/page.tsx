@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
@@ -23,20 +23,31 @@ const NAV_ITEMS = [
   { id: "tokens", icon: "🔢", label: "Tokens", path: "/app/tokens" },
 ];
 
-const TEMA_COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ec4899", "#06b6d4", "#a855f7"];
+const TEMA_COLORS = ["var(--primary)", "#f59e0b", "#10b981", "#ec4899", "#06b6d4", "#a855f7"];
 
-function groupByTema(docs: Document[]) {
+function temaColor(tema: string, allTemas: string[]) {
+  const i = allTemas.indexOf(tema);
+  return TEMA_COLORS[i % TEMA_COLORS.length];
+}
+
+function groupByTema(docs: Document[], allTemas: string[]) {
   const groups = new Map<string, Document[]>();
   for (const doc of docs) {
     const tema = doc.tema || "Outros";
     if (!groups.has(tema)) groups.set(tema, []);
     groups.get(tema)!.push(doc);
   }
-  return Array.from(groups.entries()).map(([tema, items], i) => ({
+  return Array.from(groups.entries()).map(([tema, items]) => ({
     tema,
-    color: TEMA_COLORS[i % TEMA_COLORS.length],
+    color: temaColor(tema, allTemas),
     docs: items,
   }));
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 // ─── LOGO ─────────────────────────────────────────────────────
@@ -44,8 +55,8 @@ function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const fs = size === "sm" ? 18 : size === "lg" ? 32 : 24;
   return (
     <div style={{ display: "flex", alignItems: "center" }}>
-      <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: fs, color: "#0d2d6b", lineHeight: 1 }}>Constru</span>
-      <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: fs, color: "#2d7dd2", lineHeight: 1 }}>.IA</span>
+      <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: fs, color: "var(--primary-dark)", lineHeight: 1 }}>Constru</span>
+      <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: fs, color: "var(--primary)", lineHeight: 1 }}>.IA</span>
     </div>
   );
 }
@@ -60,13 +71,13 @@ function Sidebar({ user, active, onLogout }: { user: User | null; active: string
       width: 260,
       minWidth: 260,
       height: "100vh",
-      background: "#0f172a",
-      borderRight: "1px solid #1e293b",
+      background: "var(--surface-2)",
+      borderRight: "1px solid var(--border)",
       display: "flex",
       flexDirection: "column",
       boxSizing: "border-box",
     }}>
-      <div style={{ padding: "24px 20px", borderBottom: "1px solid #1e293b" }}>
+      <div style={{ padding: "24px 20px", borderBottom: "1px solid var(--border)" }}>
         <Logo size="md" />
       </div>
 
@@ -77,6 +88,7 @@ function Sidebar({ user, active, onLogout }: { user: User | null; active: string
             <button
               key={item.id}
               onClick={() => router.push(item.path)}
+              className={isActive ? "" : "btn-ghost"}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -84,8 +96,8 @@ function Sidebar({ user, active, onLogout }: { user: User | null; active: string
                 padding: "10px 12px",
                 borderRadius: 10,
                 border: "none",
-                background: isActive ? "rgba(99,102,241,0.15)" : "transparent",
-                color: isActive ? "#a5b4fc" : "#9ca3af",
+                background: isActive ? "var(--primary-light)" : "transparent",
+                color: isActive ? "var(--primary-dark)" : "var(--text-2)",
                 fontSize: 14,
                 fontWeight: isActive ? 600 : 500,
                 textAlign: "left",
@@ -99,29 +111,30 @@ function Sidebar({ user, active, onLogout }: { user: User | null; active: string
         })}
       </nav>
 
-      <div style={{ padding: 16, borderTop: "1px solid #1e293b" }}>
+      <div style={{ padding: 16, borderTop: "1px solid var(--border)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, padding: "0 4px" }}>
           <div style={{
             width: 32, height: 32, borderRadius: "50%",
-            background: "linear-gradient(135deg,#6366f1,#4f46e5)",
+            background: "linear-gradient(135deg, var(--primary-dark), var(--primary))",
             display: "flex", alignItems: "center", justifyContent: "center",
             color: "#ffffff", fontSize: 13, fontWeight: 700, flexShrink: 0,
           }}>
             {name.charAt(0).toUpperCase()}
           </div>
-          <span style={{ color: "#e5e7eb", fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span style={{ color: "var(--text)", fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {name}
           </span>
         </div>
         <button
           onClick={onLogout}
+          className="btn-ghost"
           style={{
             width: "100%",
             padding: "10px 12px",
             borderRadius: 10,
-            border: "1px solid #374151",
+            border: "1px solid var(--border)",
             background: "transparent",
-            color: "#9ca3af",
+            color: "var(--text-2)",
             fontSize: 13,
             fontWeight: 500,
             cursor: "pointer",
@@ -137,10 +150,43 @@ function Sidebar({ user, active, onLogout }: { user: User | null; active: string
   );
 }
 
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+// ─── DOCUMENT CARD ────────────────────────────────────────────
+function DocCard({ doc, color, internal }: { doc: Document; color: string; internal?: boolean }) {
+  return (
+    <div
+      className="hover-lift"
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
+        borderRadius: 16,
+        padding: 18,
+        boxShadow: "0 2px 8px rgba(13,45,107,0.04)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 10 }}>
+        <div style={{
+          width: 38, height: 38, borderRadius: 11, flexShrink: 0,
+          background: `${color}1a`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17,
+        }}>
+          📄
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: "var(--text)", fontWeight: 700, fontSize: 14, lineHeight: 1.4 }}>{doc.name}</div>
+          {doc.category && (
+            <span style={{
+              display: "inline-block", marginTop: 6, fontSize: 10.5, fontWeight: 700, color,
+              background: `${color}1a`, borderRadius: 999, padding: "2px 9px",
+            }}>
+              {doc.category}
+            </span>
+          )}
+        </div>
+      </div>
+      <span style={{ color: "var(--text-3)", fontSize: 11.5, display: "flex", alignItems: "center", gap: 4 }}>
+        {internal ? "🔒 Interno" : "🔓 Público"}
+      </span>
+    </div>
+  );
 }
 
 export default function DocumentosPage() {
@@ -157,6 +203,7 @@ export default function DocumentosPage() {
   const [docsError, setDocsError] = useState<string | null>(null);
   const [publicDocs, setPublicDocs] = useState<Document[]>([]);
   const [internalDocs, setInternalDocs] = useState<Document[]>([]);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -195,6 +242,15 @@ export default function DocumentosPage() {
     });
   }, [router]);
 
+  const allTemas = useMemo(() => {
+    const set = new Set<string>();
+    [...publicDocs, ...internalDocs].forEach(d => set.add(d.tema || "Outros"));
+    return Array.from(set);
+  }, [publicDocs, internalDocs]);
+
+  const filteredPublic = activeFilter ? publicDocs.filter(d => (d.tema || "Outros") === activeFilter) : publicDocs;
+  const filteredInternal = activeFilter ? internalDocs.filter(d => (d.tema || "Outros") === activeFilter) : internalDocs;
+
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -223,8 +279,8 @@ export default function DocumentosPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)",
-        color: "#9ca3af",
+        background: "var(--surface-2)",
+        color: "var(--text-2)",
         fontFamily: "'Inter', sans-serif",
         fontSize: 14,
       }}>
@@ -234,100 +290,90 @@ export default function DocumentosPage() {
   }
 
   return (
-    <div style={{ display: "flex", height: "100vh", fontFamily: "'Inter', sans-serif", background: "#0f172a" }}>
+    <div style={{ display: "flex", height: "100vh", fontFamily: "'Inter', sans-serif", background: "var(--surface)" }}>
       <Sidebar user={user} active="documentos" onLogout={handleLogout} />
 
-      <div style={{ flex: 1, overflowY: "auto", background: "linear-gradient(180deg,#0f172a 0%,#1e1b4b 100%)" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "32px 24px" }}>
-          <h1 style={{ color: "#ffffff", fontSize: 24, fontWeight: 700, margin: "0 0 4px" }}>Documentos</h1>
-          <p style={{ color: "#6b7280", fontSize: 14, margin: "0 0 32px" }}>
+      <div style={{ flex: 1, overflowY: "auto", background: "var(--surface-2)" }}>
+        <div className="fade-in" style={{ maxWidth: 960, margin: "0 auto", padding: "32px 24px" }}>
+          <h1 style={{ color: "var(--text)", fontSize: 25, fontWeight: 800, margin: "0 0 4px" }}>Documentos</h1>
+          <p style={{ color: "var(--text-2)", fontSize: 14, margin: "0 0 24px" }}>
             Normas técnicas públicas disponíveis para consulta e documentos internos da sua empresa.
           </p>
 
           {loadingDocs && (
-            <p style={{ color: "#6b7280", fontSize: 13 }}>Carregando documentos...</p>
+            <p style={{ color: "var(--text-2)", fontSize: 13 }}>Carregando documentos...</p>
           )}
 
           {docsError && !loadingDocs && (
-            <p style={{ color: "#f87171", fontSize: 13 }}>{docsError}</p>
+            <p style={{ color: "var(--danger)", fontSize: 13 }}>{docsError}</p>
           )}
 
-          {!loadingDocs && !docsError && groupByTema(publicDocs).map(section => (
+          {!loadingDocs && !docsError && allTemas.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 28 }}>
+              <button
+                onClick={() => setActiveFilter(null)}
+                className="pill-btn"
+                style={{
+                  padding: "7px 16px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: "pointer",
+                  border: `1px solid ${activeFilter === null ? "var(--primary)" : "var(--border)"}`,
+                  background: activeFilter === null ? "var(--primary-light)" : "var(--surface)",
+                  color: activeFilter === null ? "var(--primary-dark)" : "var(--text-2)",
+                }}
+              >
+                Todos
+              </button>
+              {allTemas.map(tema => {
+                const color = temaColor(tema, allTemas);
+                const selected = activeFilter === tema;
+                return (
+                  <button
+                    key={tema}
+                    onClick={() => setActiveFilter(tema)}
+                    className="pill-btn"
+                    style={{
+                      padding: "7px 16px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: "pointer",
+                      border: `1px solid ${selected ? color : "var(--border)"}`,
+                      background: selected ? `${color}1a` : "var(--surface)",
+                      color: selected ? color : "var(--text-2)",
+                    }}
+                  >
+                    {tema}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {!loadingDocs && !docsError && groupByTema(filteredPublic, allTemas).map(section => (
             <div key={section.tema} style={{ marginBottom: 32 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                 <span style={{ fontSize: 18 }}>📚</span>
-                <h2 style={{ color: "#ffffff", fontSize: 16, fontWeight: 700, margin: 0 }}>{section.tema}</h2>
+                <h2 style={{ color: "var(--text)", fontSize: 16, fontWeight: 700, margin: 0 }}>{section.tema}</h2>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
                 {section.docs.map(doc => (
-                  <div
-                    key={doc.id}
-                    style={{
-                      background: "rgba(255,255,255,0.03)",
-                      border: "1px solid #1e293b",
-                      borderRadius: 14,
-                      padding: 16,
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                      <span style={{ color: "#ffffff", fontWeight: 700, fontSize: 14 }}>{doc.name}</span>
-                      {doc.category && (
-                        <span style={{
-                          fontSize: 10, fontWeight: 700, color: section.color,
-                          background: `${section.color}20`, borderRadius: 999, padding: "2px 8px",
-                        }}>
-                          {doc.category}
-                        </span>
-                      )}
-                    </div>
-                    <span style={{ color: "#6b7280", fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}>
-                      🔓 Público
-                    </span>
-                  </div>
+                  <DocCard key={doc.id} doc={doc} color={section.color} />
                 ))}
               </div>
             </div>
           ))}
 
-          {!loadingDocs && !docsError && publicDocs.length === 0 && (
-            <p style={{ color: "#6b7280", fontSize: 13, marginBottom: 32 }}>Nenhum documento público disponível.</p>
+          {!loadingDocs && !docsError && filteredPublic.length === 0 && (
+            <p style={{ color: "var(--text-2)", fontSize: 13, marginBottom: 32 }}>Nenhum documento público disponível.</p>
           )}
 
-          {!loadingDocs && !docsError && internalDocs.length > 0 && (
+          {!loadingDocs && !docsError && filteredInternal.length > 0 && (
             <div style={{ marginBottom: 32 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                 <span style={{ fontSize: 18 }}>🔒</span>
-                <h2 style={{ color: "#ffffff", fontSize: 16, fontWeight: 700, margin: 0 }}>Documentos internos</h2>
+                <h2 style={{ color: "var(--text)", fontSize: 16, fontWeight: 700, margin: 0 }}>Documentos internos</h2>
               </div>
-              {groupByTema(internalDocs).map(section => (
+              {groupByTema(filteredInternal, allTemas).map(section => (
                 <div key={section.tema} style={{ marginBottom: 20 }}>
-                  <h3 style={{ color: "#9ca3af", fontSize: 13, fontWeight: 600, margin: "0 0 10px" }}>{section.tema}</h3>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+                  <h3 style={{ color: "var(--text-2)", fontSize: 13, fontWeight: 600, margin: "0 0 10px" }}>{section.tema}</h3>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
                     {section.docs.map(doc => (
-                      <div
-                        key={doc.id}
-                        style={{
-                          background: "rgba(255,255,255,0.03)",
-                          border: "1px solid #1e293b",
-                          borderRadius: 14,
-                          padding: 16,
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: 14 }}>{doc.name}</span>
-                          {doc.category && (
-                            <span style={{
-                              fontSize: 10, fontWeight: 700, color: section.color,
-                              background: `${section.color}20`, borderRadius: 999, padding: "2px 8px",
-                            }}>
-                              {doc.category}
-                            </span>
-                          )}
-                        </div>
-                        <span style={{ color: "#6b7280", fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}>
-                          🔒 Interno
-                        </span>
-                      </div>
+                      <DocCard key={doc.id} doc={doc} color={section.color} internal />
                     ))}
                   </div>
                 </div>
@@ -339,7 +385,7 @@ export default function DocumentosPage() {
           <div style={{ marginTop: 40 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
               <span style={{ fontSize: 18 }}>📤</span>
-              <h2 style={{ color: "#ffffff", fontSize: 16, fontWeight: 700, margin: 0 }}>Enviar documento interno</h2>
+              <h2 style={{ color: "var(--text)", fontSize: 16, fontWeight: 700, margin: 0 }}>Enviar documento interno</h2>
             </div>
 
             <div
@@ -351,13 +397,14 @@ export default function DocumentosPage() {
                 handleFiles(e.dataTransfer.files);
               }}
               onClick={() => fileInputRef.current?.click()}
+              className={`dropzone${dragOver ? " drag-over" : ""}`}
               style={{
-                border: `2px dashed ${dragOver ? "#6366f1" : "#374151"}`,
-                borderRadius: 16,
-                padding: "32px 20px",
+                border: `2px dashed ${dragOver ? "var(--primary)" : "var(--border)"}`,
+                borderRadius: 18,
+                padding: "36px 20px",
                 textAlign: "center",
                 cursor: "pointer",
-                background: dragOver ? "rgba(99,102,241,0.08)" : "rgba(255,255,255,0.02)",
+                background: dragOver ? "var(--primary-light)" : "var(--surface)",
               }}
             >
               <input
@@ -368,11 +415,11 @@ export default function DocumentosPage() {
                 onChange={e => handleFiles(e.target.files)}
                 style={{ display: "none" }}
               />
-              <div style={{ fontSize: 28, marginBottom: 8 }}>📄</div>
-              <p style={{ color: "#e5e7eb", fontSize: 14, fontWeight: 600, margin: "0 0 4px" }}>
+              <div style={{ fontSize: 30, marginBottom: 10 }}>📄</div>
+              <p style={{ color: "var(--text)", fontSize: 14, fontWeight: 600, margin: "0 0 4px" }}>
                 Arraste um PDF aqui ou clique para selecionar
               </p>
-              <p style={{ color: "#6b7280", fontSize: 12, margin: 0 }}>
+              <p style={{ color: "var(--text-2)", fontSize: 12, margin: 0 }}>
                 Documentos internos ficam disponíveis apenas para a sua empresa
               </p>
             </div>
@@ -382,23 +429,24 @@ export default function DocumentosPage() {
                 {uploadedDocs.map((doc, i) => (
                   <div
                     key={`${doc.name}-${i}`}
+                    className="fade-in"
                     style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
-                      background: "#111827", border: "1px solid #1f2937", borderRadius: 12, padding: "12px 16px",
+                      background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 16px",
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden" }}>
                       <span style={{ fontSize: 16 }}>📄</span>
                       <div style={{ overflow: "hidden" }}>
-                        <div style={{ color: "#e5e7eb", fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        <div style={{ color: "var(--text)", fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {doc.name}
                         </div>
-                        <div style={{ color: "#6b7280", fontSize: 11 }}>{formatBytes(doc.size)}</div>
+                        <div style={{ color: "var(--text-3)", fontSize: 11 }}>{formatBytes(doc.size)}</div>
                       </div>
                     </div>
                     <span style={{
                       fontSize: 11, fontWeight: 600, borderRadius: 999, padding: "3px 10px", flexShrink: 0,
-                      color: doc.status === "pronto" ? "#10b981" : "#f59e0b",
+                      color: doc.status === "pronto" ? "var(--success)" : "var(--warning)",
                       background: doc.status === "pronto" ? "rgba(16,185,129,0.12)" : "rgba(245,158,11,0.12)",
                     }}>
                       {doc.status === "pronto" ? "✓ Pronto" : "⏳ Processando..."}

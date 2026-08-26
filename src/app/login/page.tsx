@@ -4,17 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-// ─── LOGO ─────────────────────────────────────────────────────
-function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
-  const fs = size === "sm" ? 18 : size === "lg" ? 32 : 24;
-  return (
-    <div style={{ display: "flex", alignItems: "center" }}>
-      <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: fs, color: "#0d2d6b", lineHeight: 1 }}>Constru</span>
-      <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: fs, color: "#2d7dd2", lineHeight: 1 }}>.IA</span>
-    </div>
-  );
-}
-
 // ─── INPUT ────────────────────────────────────────────────────
 function Field({
   label, type = "text", value, onChange, placeholder, onEnter,
@@ -27,23 +16,21 @@ function Field({
   onEnter?: () => void;
 }) {
   return (
-    <div style={{ marginBottom: 16 }}>
-      <label style={{ color: "#9ca3af", fontSize: 12, fontWeight: 500, display: "block", marginBottom: 6 }}>{label}</label>
+    <div style={{ marginBottom: 22 }}>
+      <label style={{ color: "var(--text-2)", fontSize: 12.5, fontWeight: 600, display: "block", marginBottom: 8 }}>{label}</label>
       <input
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
         onKeyDown={e => e.key === "Enter" && onEnter?.()}
         placeholder={placeholder}
+        className="field-underline"
         style={{
           width: "100%",
-          background: "#111827",
-          border: "1px solid #374151",
-          borderRadius: 12,
-          padding: "12px 16px",
-          color: "#ffffff",
-          fontSize: 14,
-          outline: "none",
+          padding: "10px 2px",
+          color: "var(--text)",
+          fontSize: 14.5,
+          fontFamily: "'Inter', sans-serif",
           boxSizing: "border-box",
         }}
       />
@@ -79,71 +66,113 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: 32,
-      fontFamily: "'Inter', sans-serif",
-      background: "linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)",
-      boxSizing: "border-box",
-    }}>
-      <div style={{ width: "100%", maxWidth: 480 }}>
-        <button
-          onClick={() => router.push("/")}
-          style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "#6b7280", fontSize: 14, marginBottom: 24, cursor: "pointer", padding: 0 }}
-        >
-          ← Voltar ao início
-        </button>
-
-        <div style={{ marginBottom: 24 }}>
-          <Logo size="md" />
+    <div className="auth-split" style={{ fontFamily: "'Inter', sans-serif", background: "var(--surface-2)" }}>
+      {/* LEFT PANEL */}
+      <div
+        className="auth-left"
+        style={{
+          position: "relative", overflow: "hidden",
+          background: "linear-gradient(150deg, var(--primary-dark) 0%, #123a82 60%, var(--primary) 130%)",
+          display: "flex", flexDirection: "column", justifyContent: "space-between",
+          padding: 48, boxSizing: "border-box",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute", inset: 0, opacity: 0.5,
+            backgroundImage: "linear-gradient(rgba(255,255,255,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.06) 1px,transparent 1px)",
+            backgroundSize: "56px 56px",
+          }}
+        />
+        <div style={{ position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: 24, color: "#ffffff", lineHeight: 1 }}>Constru</span>
+            <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: 24, color: "var(--primary-light)", lineHeight: 1 }}>.IA</span>
+          </div>
         </div>
+        <div style={{ position: "relative" }}>
+          <h1 style={{ color: "#ffffff", fontSize: 32, fontWeight: 800, lineHeight: 1.25, margin: "0 0 16px" }}>
+            Normas técnicas,<br />respondidas em segundos.
+          </h1>
+          <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 15, lineHeight: 1.6, maxWidth: 360, margin: 0 }}>
+            NRs, ABNTs, CONAMA e documentos internos da sua empresa — tudo em um só lugar, com citação da fonte.
+          </p>
+          <div style={{ display: "flex", gap: 32, marginTop: 40 }}>
+            {[["13+", "NRs indexadas"], ["3s", "Resposta média"], ["100%", "Fontes oficiais"]].map(([v, l]) => (
+              <div key={l}>
+                <div style={{ color: "#ffffff", fontSize: 22, fontWeight: 800 }}>{v}</div>
+                <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11.5, marginTop: 2 }}>{l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ position: "relative", color: "rgba(255,255,255,0.5)", fontSize: 12.5 }}>
+          © 2026 Constru.IA
+        </div>
+      </div>
 
-        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid #1e293b", borderRadius: 20, padding: 32 }}>
-          <h2 style={{ color: "#ffffff", fontSize: 22, fontWeight: 700, margin: "0 0 4px" }}>Bem-vindo de volta</h2>
-          <p style={{ color: "#6b7280", fontSize: 14, margin: "0 0 24px" }}>Acesse sua conta para continuar</p>
-
-          <Field label="E-mail" type="email" value={email} onChange={setEmail} placeholder="voce@empresa.com.br" onEnter={handleLogin} />
-          <Field label="Senha" type="password" value={password} onChange={setPassword} placeholder="••••••••" onEnter={handleLogin} />
-
-          {error && (
-            <div style={{ background: "rgba(127,29,29,0.4)", border: "1px solid #991b1b", borderRadius: 12, padding: "12px 16px", marginBottom: 16 }}>
-              <span style={{ color: "#f87171", fontSize: 14 }}>⚠️ {error}</span>
-            </div>
-          )}
-
+      {/* RIGHT PANEL */}
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 32, boxSizing: "border-box" }}>
+        <div style={{ width: "100%", maxWidth: 420 }}>
           <button
-            onClick={handleLogin}
-            disabled={loading}
+            onClick={() => router.push("/")}
+            className="link-underline"
+            style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: "var(--text-2)", fontSize: 14, marginBottom: 28, cursor: "pointer", padding: 0 }}
+          >
+            ← Voltar ao início
+          </button>
+
+          <div
+            className="fade-in"
             style={{
-              width: "100%",
-              padding: "12px 0",
-              borderRadius: 12,
-              fontWeight: 600,
-              fontSize: 14,
-              color: "#ffffff",
-              border: "none",
-              cursor: loading ? "not-allowed" : "pointer",
-              background: loading ? "#374151" : "linear-gradient(135deg,#6366f1,#4f46e5)",
-              boxShadow: loading ? "none" : "0 4px 24px #6366f140",
+              background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 20, padding: 36,
+              boxShadow: "0 24px 60px rgba(13,45,107,0.10)",
             }}
           >
-            {loading ? "Verificando..." : "Entrar →"}
-          </button>
-        </div>
+            <h2 style={{ color: "var(--text)", fontSize: 23, fontWeight: 800, margin: "0 0 4px" }}>Bem-vindo de volta</h2>
+            <p style={{ color: "var(--text-2)", fontSize: 14, margin: "0 0 28px" }}>Acesse sua conta para continuar</p>
 
-        <div style={{ textAlign: "center", marginTop: 24 }}>
-          <span style={{ color: "#6b7280", fontSize: 14 }}>
-            Não tem conta?{" "}
+            <Field label="E-mail" type="email" value={email} onChange={setEmail} placeholder="voce@empresa.com.br" onEnter={handleLogin} />
+            <Field label="Senha" type="password" value={password} onChange={setPassword} placeholder="••••••••" onEnter={handleLogin} />
+
+            {error && (
+              <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 12, padding: "12px 16px", marginBottom: 18 }}>
+                <span style={{ color: "var(--danger)", fontSize: 13.5 }}>⚠️ {error}</span>
+              </div>
+            )}
+
             <button
-              onClick={() => router.push("/signup")}
-              style={{ background: "none", border: "none", color: "#818cf8", fontWeight: 500, fontSize: 14, cursor: "pointer", padding: 0 }}
+              onClick={handleLogin}
+              disabled={loading}
+              className={loading ? "" : "btn-primary"}
+              style={{
+                width: "100%",
+                padding: "13px 0",
+                borderRadius: 12,
+                fontWeight: 700,
+                fontSize: 14.5,
+                color: "#ffffff",
+                border: "none",
+                cursor: loading ? "not-allowed" : "pointer",
+                background: loading ? "var(--text-3)" : undefined,
+              }}
             >
-              Criar conta grátis
+              {loading ? "Verificando..." : "Entrar →"}
             </button>
-          </span>
+          </div>
+
+          <div style={{ textAlign: "center", marginTop: 24 }}>
+            <span style={{ color: "var(--text-2)", fontSize: 14 }}>
+              Não tem conta?{" "}
+              <button
+                onClick={() => router.push("/signup")}
+                className="link-underline"
+                style={{ background: "none", border: "none", color: "var(--primary)", fontWeight: 600, fontSize: 14, cursor: "pointer", padding: 0 }}
+              >
+                Criar conta grátis
+              </button>
+            </span>
+          </div>
         </div>
       </div>
     </div>

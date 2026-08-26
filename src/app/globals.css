@@ -2,7 +2,21 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1e293b;
+
+  --primary-dark: #0d2d6b;
+  --primary: #2d7dd2;
+  --primary-light: #e8f0fe;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #f1f5f9;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --text-2: #64748b;
+  --text-3: #94a3b8;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
 }
 
 @theme inline {
@@ -12,15 +26,184 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+body {
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+/* ─── Keyframes ──────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes accordionOpen {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmerBar {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+@keyframes pulseBorder {
+  0%, 100% { border-color: var(--primary); }
+  50%      { border-color: var(--primary-dark); }
+}
+@keyframes softPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+/* ─── Reveal-on-scroll ───────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease both;
+}
+
+/* ─── Interaction utilities ──────────────────────────────── */
+.hover-lift {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px rgba(13, 45, 107, 0.12);
+  border-color: var(--primary) !important;
+}
+
+.hover-scale {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-scale:hover {
+  transform: scale(1.03);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(45, 125, 210, 0.35);
+  filter: brightness(1.06);
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-ghost {
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.btn-ghost:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+}
+
+.link-underline {
+  position: relative;
+  transition: color 0.2s ease;
+}
+.link-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  width: 0;
+  height: 2px;
+  background: var(--primary);
+  transition: width 0.25s ease;
+}
+.link-underline:hover::after { width: 100%; }
+.link-underline:hover { color: var(--primary-dark); }
+
+.field-underline {
+  border: none;
+  border-bottom: 2px solid var(--border);
+  transition: border-color 0.25s ease, background 0.25s ease;
+  background: transparent;
+}
+.field-underline:focus {
+  border-bottom-color: var(--primary);
+  outline: none;
+}
+
+.progress-fill {
+  transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  background-size: 200% 100%;
+  animation: shimmerBar 2.4s linear infinite;
+}
+
+.dropzone {
+  transition: border-color 0.25s ease, background 0.25s ease, transform 0.25s ease;
+}
+.dropzone.drag-over {
+  animation: pulseBorder 1.1s ease infinite;
+  transform: scale(1.01);
+}
+
+.card-select {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.card-select:hover {
+  border-color: var(--primary);
+  box-shadow: 0 6px 20px rgba(45, 125, 210, 0.14);
+}
+
+.faq-content {
+  animation: accordionOpen 0.25s ease both;
+}
+
+.pill-btn {
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+.pill-btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--primary) !important;
+  background: var(--primary-light) !important;
+  color: var(--primary-dark) !important;
+}
+
+.live-dot {
+  animation: softPulse 2s ease infinite;
+}
+
+/* ─── Auth split layout ──────────────────────────────────── */
+.auth-split {
+  display: flex;
+  min-height: 100vh;
+}
+.auth-left {
+  flex: 0 0 42%;
+}
+@media (max-width: 880px) {
+  .auth-left {
+    display: none;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ─── Plan select cards (signup) ─────────────────────────── */
+.plan-select {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease;
 }
+.plan-select:hover {
+  transform: translateY(-2px);
+}
+
