@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -9,39 +9,39 @@ function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const fs = size === "sm" ? 18 : size === "lg" ? 32 : 24;
   return (
     <div style={{ display: "flex", alignItems: "center" }}>
-      <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: fs, color: "#0d2d6b", lineHeight: 1 }}>Constru</span>
-      <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: fs, color: "#2d7dd2", lineHeight: 1 }}>.IA</span>
+      <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: fs, color: "var(--primary-dark)", lineHeight: 1 }}>Constru</span>
+      <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: fs, color: "var(--primary)", lineHeight: 1 }}>.IA</span>
     </div>
   );
 }
 
 // ─── INPUT ────────────────────────────────────────────────────
 function Field({
-  label, type = "text", value, onChange, placeholder,
+  label, type = "text", value, onChange, placeholder, disabled,
 }: {
   label: string;
   type?: string;
   value: string;
-  onChange: (v: string) => void;
+  onChange?: (v: string) => void;
   placeholder?: string;
+  disabled?: boolean;
 }) {
   return (
-    <div style={{ marginBottom: 16 }}>
-      <label style={{ color: "#9ca3af", fontSize: 12, fontWeight: 500, display: "block", marginBottom: 6 }}>{label}</label>
+    <div style={{ marginBottom: 20 }}>
+      <label style={{ color: "var(--text-2)", fontSize: 12.5, fontWeight: 600, display: "block", marginBottom: 8 }}>{label}</label>
       <input
         type={type}
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={e => onChange?.(e.target.value)}
         placeholder={placeholder}
+        disabled={disabled}
+        className="field-underline"
         style={{
           width: "100%",
-          background: "#111827",
-          border: "1px solid #374151",
-          borderRadius: 12,
-          padding: "12px 16px",
-          color: "#ffffff",
-          fontSize: 14,
-          outline: "none",
+          padding: "10px 2px",
+          color: disabled ? "var(--text-3)" : "var(--text)",
+          fontSize: 14.5,
+          fontFamily: "'Inter', sans-serif",
           boxSizing: "border-box",
         }}
       />
@@ -54,19 +54,37 @@ function AceitarConviteForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
 
+  const [checking, setChecking] = useState(true);
+  const [valid, setValid] = useState(false);
+  const [tenantName, setTenantName] = useState("");
+  const [email, setEmail] = useState("");
+
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!token) {
+      setChecking(false);
+      return;
+    }
+    fetch(`/api/super-admin/validate-invite?token=${encodeURIComponent(token)}`)
+      .then(res => res.json())
+      .then(result => {
+        setValid(!!result.valid);
+        setTenantName(result.tenant_name || "");
+        setEmail(result.email || "");
+      })
+      .catch(() => setValid(false))
+      .finally(() => setChecking(false));
+  }, [token]);
 
   const handleSubmit = async () => {
     setError("");
 
-    if (!token) {
-      setError("Link de convite inválido.");
-      return;
-    }
-    if (!fullName || !password) {
+    if (!fullName || !password || !confirmPassword) {
       setError("Preencha todos os campos.");
       return;
     }
@@ -74,10 +92,14 @@ function AceitarConviteForm() {
       setError("A senha deve ter pelo menos 6 caracteres.");
       return;
     }
+    if (password !== confirmPassword) {
+      setError("As senhas não coincidem.");
+      return;
+    }
 
     setLoading(true);
 
-    const res = await fetch("/api/admin/accept-invite", {
+    const res = await fetch("/api/super-admin/accept-invite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, full_name: fullName, password }),
@@ -112,55 +134,68 @@ function AceitarConviteForm() {
       justifyContent: "center",
       padding: 32,
       fontFamily: "'Inter', sans-serif",
-      background: "linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)",
+      background: "var(--surface-2)",
       boxSizing: "border-box",
     }}>
-      <div style={{ width: "100%", maxWidth: 420 }}>
+      <div style={{ width: "100%", maxWidth: 440 }}>
         <div style={{ marginBottom: 24, display: "flex", justifyContent: "center" }}>
           <Logo size="md" />
         </div>
 
-        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid #1e293b", borderRadius: 20, padding: 32 }}>
-          <h2 style={{ color: "#ffffff", fontSize: 22, fontWeight: 700, margin: "0 0 4px", textAlign: "center" }}>
-            Complete seu cadastro
-          </h2>
-          <p style={{ color: "#6b7280", fontSize: 14, margin: "0 0 24px", textAlign: "center" }}>
-            Defina seu nome e uma senha para acessar a Constru.IA
-          </p>
+        <div
+          className="fade-in"
+          style={{
+            background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 20, padding: 36,
+            boxShadow: "0 24px 60px rgba(13,45,107,0.10)",
+          }}
+        >
+          {checking ? (
+            <p style={{ color: "var(--text-2)", fontSize: 14, textAlign: "center", margin: 0 }}>Verificando convite...</p>
+          ) : !valid ? (
+            <>
+              <h2 style={{ color: "var(--text)", fontSize: 22, fontWeight: 800, margin: "0 0 12px", textAlign: "center" }}>
+                Convite inválido
+              </h2>
+              <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 12, padding: "12px 16px" }}>
+                <span style={{ color: "var(--danger)", fontSize: 13.5 }}>
+                  ⚠️ Este link de convite é inválido, já foi utilizado ou expirou.
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 style={{ color: "var(--text)", fontSize: 22, fontWeight: 800, margin: "0 0 4px", textAlign: "center" }}>
+                Complete seu cadastro
+              </h2>
+              <p style={{ color: "var(--text-2)", fontSize: 14, margin: "0 0 24px", textAlign: "center" }}>
+                Você foi convidado para <strong style={{ color: "var(--text)" }}>{tenantName}</strong> na Constru.IA
+              </p>
 
-          {!token && (
-            <div style={{ background: "rgba(127,29,29,0.4)", border: "1px solid #991b1b", borderRadius: 12, padding: "12px 16px", marginBottom: 16 }}>
-              <span style={{ color: "#f87171", fontSize: 14 }}>⚠️ Link de convite inválido ou incompleto.</span>
-            </div>
+              <Field label="E-mail" value={email} disabled />
+              <Field label="Nome completo" value={fullName} onChange={setFullName} placeholder="Seu nome" />
+              <Field label="Senha" type="password" value={password} onChange={setPassword} placeholder="••••••••" />
+              <Field label="Confirmar senha" type="password" value={confirmPassword} onChange={setConfirmPassword} placeholder="••••••••" />
+
+              {error && (
+                <div style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 12, padding: "12px 16px", marginBottom: 18 }}>
+                  <span style={{ color: "var(--danger)", fontSize: 13.5 }}>⚠️ {error}</span>
+                </div>
+              )}
+
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className={loading ? "" : "btn-primary"}
+                style={{
+                  width: "100%", padding: "13px 0", borderRadius: 12, fontWeight: 700, fontSize: 14.5,
+                  color: "#ffffff", border: "none", cursor: loading ? "not-allowed" : "pointer",
+                  background: loading ? "var(--text-3)" : undefined,
+                }}
+              >
+                {loading ? "Criando acesso..." : "Aceitar convite →"}
+              </button>
+            </>
           )}
-
-          <Field label="Nome completo" value={fullName} onChange={setFullName} placeholder="Seu nome" />
-          <Field label="Nova senha" type="password" value={password} onChange={setPassword} placeholder="••••••••" />
-
-          {error && (
-            <div style={{ background: "rgba(127,29,29,0.4)", border: "1px solid #991b1b", borderRadius: 12, padding: "12px 16px", marginBottom: 16 }}>
-              <span style={{ color: "#f87171", fontSize: 14 }}>⚠️ {error}</span>
-            </div>
-          )}
-
-          <button
-            onClick={handleSubmit}
-            disabled={loading || !token}
-            style={{
-              width: "100%",
-              padding: "12px 0",
-              borderRadius: 12,
-              fontWeight: 600,
-              fontSize: 14,
-              color: "#ffffff",
-              border: "none",
-              cursor: loading || !token ? "not-allowed" : "pointer",
-              background: loading || !token ? "#374151" : "linear-gradient(135deg,#6366f1,#4f46e5)",
-              boxShadow: loading || !token ? "none" : "0 4px 24px #6366f140",
-            }}
-          >
-            {loading ? "Criando acesso..." : "Aceitar convite →"}
-          </button>
         </div>
       </div>
     </div>
@@ -175,8 +210,8 @@ export default function AceitarConvitePage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)",
-        color: "#9ca3af",
+        background: "var(--surface-2)",
+        color: "var(--text-2)",
         fontFamily: "'Inter', sans-serif",
         fontSize: 14,
       }}>
