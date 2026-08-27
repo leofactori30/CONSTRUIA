@@ -3,6 +3,7 @@
 // CREATE TABLE IF NOT EXISTS tenants (
 //   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 //   name TEXT NOT NULL,
+//   slug TEXT UNIQUE NOT NULL,
 //   cnpj TEXT,
 //   plan TEXT NOT NULL DEFAULT 'professional',
 //   token_limit INTEGER NOT NULL DEFAULT 150000,
@@ -43,10 +44,20 @@ export async function POST(request: Request) {
     return Response.json({ error: "Nome, e-mail do admin e plano (professional/enterprise) são obrigatórios." }, { status: 400 });
   }
 
+  const slug = name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove acentos
+    .replace(/[^a-z0-9]/g, "-") // substitui especiais por -
+    .replace(/-+/g, "-") // remove hífens duplos
+    .replace(/^-|-$/g, "") // remove hífens nas bordas
+    + "-" + Date.now(); // garante unicidade
+
   const { data: tenant, error: tenantError } = await supabaseAdmin
     .from("tenants")
     .insert({
       name,
+      slug,
       cnpj: cnpj || null,
       plan,
       token_limit: Number.isFinite(token_limit) && token_limit > 0 ? token_limit : 150_000,
