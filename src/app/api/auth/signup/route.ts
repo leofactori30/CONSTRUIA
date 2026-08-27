@@ -15,7 +15,9 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    return Response.json({ error: error.message }, { status: 400 });
+    // Mensagem sempre genérica — nunca confirmar se o e-mail já está
+    // cadastrado (evita enumeração de contas), independente da causa real.
+    return Response.json({ error: "Não foi possível criar a conta. Verifique os dados." }, { status: 400 });
   }
 
   return Response.json({ user: data.user });

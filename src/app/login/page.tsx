@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
 // ─── INPUT ────────────────────────────────────────────────────
 function Field({
@@ -53,16 +52,25 @@ export default function LoginPage() {
     }
     setLoading(true);
 
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const result = await res.json();
 
-    if (authError) {
-      setError(authError.message || "E-mail ou senha incorretos.");
+      if (!res.ok) {
+        setError(result?.error || "Credenciais inválidas");
+        setLoading(false);
+        return;
+      }
+
+      router.push("/app/chat");
+    } catch {
+      setError("Erro de conexão. Tente novamente.");
       setLoading(false);
-      return;
     }
-
-    router.push("/app/chat");
   };
 
   return (
